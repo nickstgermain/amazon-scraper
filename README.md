@@ -11,7 +11,7 @@ Welcome to the Amazon Scraper project! 🚀 This handy tool is designed to help 
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/nickstgermain/amazon-scraper.git
    cd <repository-directory>
    ```
 
