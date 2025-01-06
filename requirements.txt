@@ -1,2 +1,4 @@
 selenium
-pandas 
+selenium-wire
+pandas
+blinker==1.7.0 
