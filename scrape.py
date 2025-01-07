@@ -159,18 +159,19 @@ def parse_listing_selenium(listing_url, pages):
 
     return data
 
-def configure_proxy(proxy):
+def configure_proxy(proxy=None):
     firefox_options = Options()
     firefox_options.add_argument('--headless')  # Run in headless mode
 
-    proxy_host, proxy_port, proxy_user, proxy_pass = proxy.split(':')
-    seleniumwire_options = {
-        'proxy': {
-            'http': f'http://{proxy_user}:{proxy_pass}@{proxy_host}:{proxy_port}',
-            'https': f'https://{proxy_user}:{proxy_pass}@{proxy_host}:{proxy_port}',
-            'no_proxy': 'localhost,127.0.0.1'
+    seleniumwire_options = None
+    if proxy:
+        proxy_host, proxy_port, proxy_user, proxy_pass = proxy.split(':')
+        seleniumwire_options = {
+            'proxy': {
+                'http': f'http://{proxy_user}:{proxy_pass}@{proxy_host}:{proxy_port}',
+                'https': f'https://{proxy_user}:{proxy_pass}@{proxy_host}:{proxy_port}'
+            }
         }
-    }
 
     # Path to your GeckoDriver
     webdriver_service = Service('/Users/nickstgermain/Desktop/geckodriver')  # Update this path
@@ -178,6 +179,7 @@ def configure_proxy(proxy):
     return webdriver.Firefox(service=webdriver_service, options=firefox_options, seleniumwire_options=seleniumwire_options)
 
 def main():
+    global browser  # Move this declaration to the top of the function
     search = input("Enter the search term (leave blank if using specific URLs): ").strip()
     urls = []
     if not search:
@@ -190,10 +192,9 @@ def main():
     proxies = []
 
     data = []
-    for proxy in proxies:
-        print(f"Using proxy: {proxy}")
-        global browser
-        browser = configure_proxy(proxy)
+    if not proxies:  # Check if the proxy list is empty
+        print("No proxies provided, running without proxy.")
+        browser = configure_proxy()  # Configure without proxy
         try:
             if search:
                 search_url = f"https://www.amazon.com/s?k={search}"
@@ -202,9 +203,24 @@ def main():
                 for url in urls:
                     data.extend(parse_listing_selenium(url, pages))
         except Exception as e:
-            print(f"Error with proxy {proxy}: {e}")
+            print(f"Error without proxy: {e}")
         finally:
             browser.quit()
+    else:
+        for proxy in proxies:
+            print(f"Using proxy: {proxy}")
+            browser = configure_proxy(proxy)
+            try:
+                if search:
+                    search_url = f"https://www.amazon.com/s?k={search}"
+                    data.extend(parse_listing_selenium(search_url, pages))
+                elif urls:
+                    for url in urls:
+                        data.extend(parse_listing_selenium(url, pages))
+            except Exception as e:
+                print(f"Error with proxy {proxy}: {e}")
+            finally:
+                browser.quit()
 
     df = pd.DataFrame(data)
     df.to_csv("amazon_data.csv", index=False, columns=["title", "price", "rating", "image", "description", "url"])
